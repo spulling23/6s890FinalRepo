@@ -3,11 +3,10 @@
 This directory contains experiments for the 6.S890 final project on leveraging game-theoretic rationality to reduce sample complexity in behavioral cloning for chess.
 
 ## Project Structure
-
 ```
 experiments/
-├── configs/          # Configuration files for different experimental conditions
-├── data/            # Data preparation scripts and sample datasets
+├── configs/          # Configuration files for experimental conditions
+├── data/            # Data preparation scripts and utilities
 ├── models/          # Custom model implementations and loss functions
 ├── results/         # Training logs, checkpoints, and evaluation results
 ├── scripts/         # Training and evaluation scripts
@@ -16,51 +15,73 @@ experiments/
 
 ## Experimental Conditions
 
-### 1. Baseline (Mixed Skill)
-- **Config**: `configs/baseline_config.py`
-- **Dataset**: Mixed skill levels (ELO 1500-2500+)
-- **Purpose**: Establish performance with standard behavioral cloning
+### 1. Random (Baseline)
+- **Config**: `configs/random_config.py`
+- **Dataset**: Elo 1000+ (268,062 games)
+- **Loss**: Cross-entropy
+- **Purpose**: Baseline representing naive behavioral cloning on mixed-skill data
 
-### 2. Expert-Only
-- **Config**: `configs/expert_only_config.py`
-- **Dataset**: High-ELO players only (2500+)
-- **Hypothesis**: 30-50% reduction in sample complexity due to lower variance
+### 2. Expert
+- **Config**: `configs/expert_config.py`
+- **Dataset**: At least one player Elo 2000+ (47,066 games)
+- **Loss**: Cross-entropy
+- **Hypothesis (H1)**: Lower variance in expert play reduces sample complexity
 
-### 3. Game-Theoretic Regularization
+### 3. Grandmaster
+- **Config**: `configs/grandmaster_config.py`
+- **Dataset**: At least one player Elo 2400+ (274,794 games)
+- **Loss**: Cross-entropy
+- **Purpose**: Elite-level play approximating equilibrium strategies
+
+### 4. Game-Theoretic Regularization
 - **Config**: `configs/game_theoretic_config.py`
-- **Dataset**: High-ELO players (2500+)
-- **Loss**: Cross-entropy + KL-divergence from Stockfish evaluations
-- **Hypothesis**: Additional 15-25% reduction in sample complexity
+- **Dataset**: Grandmaster data
+- **Loss**: Cross-entropy − λH(p) (entropy regularization)
+- **Hypothesis (H2)**: Regularization toward equilibrium further reduces sample complexity
+- **Note**: Original KL-divergence approach with Stockfish proved computationally infeasible
 
-## Small-Scale Test Setup
+### Additional Configs
+- `expert_entropy_2k.py`: Expert data with entropy regularization
+- `expert_standard_2k.py`: Expert data with standard cross-entropy
+- `medium_config.py`: Intermediate configuration for testing
 
-For the progress report, we're using a minimal setup:
-- **Model**: CT-E-20 architecture (20M parameters, encoder-only)
-- **Training data**: ~10K games
-- **Evaluation**: Top-1 and top-3 move accuracy on held-out test set
+## Evaluation Metrics
 
-## Key Metrics
+1. **Training Dynamics**: Steps to reach accuracy thresholds (10%, 20%, 30%)
+2. **Top-K Accuracy**: Top-1 and top-3 move prediction with legal move masking
+3. **Stockfish Alignment**: Agreement with engine moves at Elo 1500, 2000, 2500
 
-1. **Sample Complexity Curves**: Training games required to achieve 70% top-1 accuracy
-2. **Top-K Accuracy**: Top-1, top-3, and top-5 move prediction accuracy
-3. **Stockfish Alignment**: KL-divergence between model and Stockfish move distributions
-4. **Centipawn Loss**: Average position evaluation change from predicted moves
+## Quick Start
+```bash
+# Activate environment
+source ../venv/bin/activate
+
+# Train Random baseline
+python scripts/train.py --config configs/random_config.py
+
+# Train Expert model
+python scripts/train.py --config configs/expert_config.py
+
+# Train Grandmaster model
+python scripts/train.py --config configs/grandmaster_config.py
+
+# View training logs
+tensorboard --logdir results/
+```
+
+## Evaluation
+```bash
+# Evaluate checkpoint
+python scripts/evaluate.py --checkpoint results/expert/checkpoint.pt
+
+# Run Stockfish alignment evaluation
+python scripts/stockfish_eval.py --checkpoint results/expert/checkpoint.pt
+```
 
 ## Dependencies
 
-Core dependencies (from chess-transformers):
-- PyTorch
-- python-chess (for Stockfish integration)
-- tensorboard (for logging)
-- h5py/tables (for HDF5 data files)
-
-## Quick Start
-
-1. **Data Preparation**: See `data/prepare_sample_data.py`
-2. **Training**: Run `python scripts/train.py --config configs/baseline_config.py`
-3. **Evaluation**: Run `python scripts/evaluate.py --checkpoint results/baseline/checkpoint.pt`
-
-## Notes
-
-- Install Stockfish separately and set `CT_STOCKFISH_PATH` environment variable
-- For full-scale experiments, use the Lichess database from https://database.lichess.org/
+- PyTorch 2.0+
+- python-chess
+- tensorboard
+- h5py / tables
+- Stockfish (for evaluation)
