@@ -1,146 +1,113 @@
 # Game-Theoretic Behavioral Cloning for Chess
 
-**Course**: 6.S890 Multi-Agent Learning
-**Team**: Skyler Pulling, Hara Moraitaki, Isaac (Zack) Duitz
+**Course**: 6.S890 Multi-Agent Learning  
+**Team**: Isaac (Zack) Duitz, Charikleia (Hara) Moraitaki, Skyler Pulling
 
 ## Project Overview
 
-This project tests whether leveraging game-theoretic rationality can reduce sample complexity in behavioral cloning for chess.
+This project investigates whether training on near-equilibrium data can reduce sample complexity in behavioral cloning for chess. We train transformer models on datasets stratified by player skill and measure learning efficiency, validation accuracy, and alignment with engine play.
 
-**Hypotheses**:
-- **H1**: Expert-only training (ELO 2500+) requires 30-50% fewer samples than mixed-skill training
-- **H2**: Adding game-theoretic regularization (KL-divergence from Stockfish) provides an additional 15-25% reduction
+**Research Questions**:
+- **H1 (Expert Variance)**: Does training exclusively on expert gameplay (Elo 2000+) require fewer samples than mixed-skill data?
+- **H2 (Game-Theoretic Regularization)**: Does adding KL-divergence regularization toward Stockfish further reduce sample complexity?
+
+**Key Finding**: Data quality dramatically outweighs data quantity. The Expert model (47K games) achieves 2.7× higher accuracy than the Random model (268K games).
+
+## Experimental Conditions
+
+| Condition | Training Data | Games | Loss Function |
+|-----------|--------------|-------|---------------|
+| Random | Elo 1000+ | 268,062 | Cross-entropy |
+| Expert | At least one player Elo 2000+ | 47,066 | Cross-entropy |
+| Grandmaster | At least one player Elo 2400+ | 274,794 | Cross-entropy |
+| GT-regularized | Grandmaster + guidance | 274,794 | CE − λH(p) |
+
+## Results Summary
+
+- **Expert model**: 46% top-1 validation accuracy, 25–33% Stockfish agreement
+- **Random model**: 15% top-1 validation accuracy, 7–11% Stockfish agreement
+- Expert reaches 30% accuracy threshold in ~3,500 steps; Random never reaches it
 
 ## Quick Start
 
 ### 1. Clone Repository
-
 ```bash
 git clone https://github.com/haramor/6s890-finalproject.git
 cd 6s890-finalproject
 ```
 
 ### 2. Set Up Environment
-
 ```bash
-# Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
 pip install torch torchvision torchaudio scipy h5py tqdm tensorboard python-chess tables
 
-# Clone base models (not included in repo)
+# Clone base model architecture
 git clone https://github.com/sgrvinod/chess-transformers.git
 ```
 
-### 3. Generate Test Data
+### 3. Data Preparation
+See `DATA-PREP.md` for instructions on downloading and processing Lichess PGN archives.
 
+### 4. Run Training
 ```bash
 cd experiments
-python data/prepare_sample_data.py
+
+# Random baseline
+python scripts/train.py --config configs/random_config.py
+
+# Expert-only (H1)
+python scripts/train.py --config configs/expert_config.py
+
+# Grandmaster
+python scripts/train.py --config configs/grandmaster_config.py
 ```
 
-### 4. Run Demo (verify setup)
-
+### 5. View Logs
 ```bash
-python scripts/demo_training.py
+tensorboard --logdir results/
 ```
-
-Expected: 5 training steps with decreasing loss (~30 seconds)
-
-## Three Experimental Conditions
-
-1. **Baseline** (`configs/baseline_config.py`)
-   - Mixed skill dataset (ELO 1500-2500+)
-   - Standard cross-entropy loss
-
-2. **Expert-Only** (`configs/expert_only_config.py`)
-   - High-ELO only (2500+)
-   - Standard cross-entropy loss
-   - Tests H1
-
-3. **Game-Theoretic** (`configs/game_theoretic_config.py`)
-   - High-ELO only (2500+)
-   - Loss: CE + λ * KL(Stockfish || Model)
-   - Tests H2
 
 ## Project Structure
-
 ```
 experiments/
 ├── configs/                    # Experimental configurations
-├── models/                     # Game-theoretic loss implementation
-├── scripts/                    # Training and testing scripts
-└── data/                       # Data preparation utilities
+├── models/                     # Model and loss implementations
+├── scripts/                    # Training and evaluation scripts
+├── data/                       # Data preparation utilities
+└── results/                    # Training logs and checkpoints
 
 chess-transformers/             # Clone separately (not in repo)
 ```
 
-## Key Innovation
+## Model Architecture
 
-Custom loss function combining behavioral cloning with equilibrium regularization:
+We use the `chess-transformers` encoder-only architecture (CT-E-20) with ~20M parameters:
+- 512-d embeddings, 6 layers, 8 attention heads
+- Input: 69 tokens (turn + castling rights + 64 board squares)
+- Output: distribution over 1,971 UCI moves
 
-```
-L_total = L_CE + λ * L_KL
+## Evaluation
 
-where:
-- L_CE = Cross-entropy (learn from expert moves)
-- L_KL = KL-divergence from Stockfish (penalize deviation from equilibrium)
-- λ = Tunable weight (default: 0.1)
-```
-
-## Current Status
-
-### ✅ Complete
-- Three experimental configurations
-- Game-theoretic loss implementation
-- Full training pipeline with TensorBoard
-- Training verified working (loss decreasing)
-
-### 📋 Needed
-- Real Lichess data (see TODO.md)
-- Sample complexity analysis
-- Statistical significance tests
-
-## Running Experiments
-
-### Full Training
-
-```bash
-source venv/bin/activate
-cd experiments
-
-# Baseline
-python scripts/train.py --config configs/baseline_config.py
-
-# Expert-only
-python scripts/train.py --config configs/expert_only_config.py
-
-# Game-theoretic (requires Stockfish)
-python scripts/train.py --config configs/game_theoretic_config.py
-```
-
-### View Logs
-
-```bash
-tensorboard --logdir results/
-# Open http://localhost:6006
-```
-
-## Documentation
-
-- **README.md** (this file) - Project overview and setup
-- **DATA-PREP.md** - How to prepare a new dataset
-- **TODO.md** - Remaining work and detailed roadmap
-- **experiments/README.md** - Experiment-specific details
+- **Training dynamics**: Steps to reach accuracy thresholds (10%, 20%, 30%)
+- **Validation accuracy**: Top-1 and top-3 on held-out positions with legal move masking
+- **Stockfish alignment**: Agreement with engine moves at Elo 1500, 2000, 2500
 
 ## Requirements
 
 - Python 3.8+
 - PyTorch 2.0+
 - python-chess, h5py, tensorboard
-- Stockfish (for game-theoretic condition)
+- Stockfish (for evaluation only)
+
+## Citation
+
+If you use this code, please cite our project report:
+```
+Duitz, Moraitaki, and Pulling. "Leveraging Game-Theoretic Rationality to Reduce 
+Sample Complexity in Behavioral Cloning." 6.S890 Final Project, MIT, 2025.
+```
 
 ## License
 
