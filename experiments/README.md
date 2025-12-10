@@ -71,11 +71,11 @@ tensorboard --logdir results/
 
 ## Evaluation
 ```bash
-# Evaluate checkpoint
-python scripts/evaluate.py --checkpoint results/expert/checkpoint.pt
+# Calculate Stockfish alignment
+python scripts/stock_agreement_new.py
 
-# Run Stockfish alignment evaluation
-python scripts/stockfish_eval.py --checkpoint results/expert/checkpoint.pt
+# Evaluate checkpoint
+python scripts/extract_all_metrics.py
 ```
 
 ## Dependencies
