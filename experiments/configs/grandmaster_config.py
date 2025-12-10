@@ -1,15 +1,12 @@
 """
-Expert-Only Configuration
-
-This configuration uses only high-ELO games (2500+) to test whether
-expert data alone reduces sample complexity.
+Grandmaster Config
 """
 
 import torch
 import pathlib
 
 # Experiment name
-NAME = "expert_only_2500"
+NAME = "expert_LE22ct"
 EXPERIMENT_TYPE = "expert_only"
 
 ###############################
@@ -17,7 +14,7 @@ EXPERIMENT_TYPE = "expert_only"
 ###############################
 
 BASE_DIR = pathlib.Path(__file__).parent.parent.resolve()
-DATA_FOLDER = str(BASE_DIR / "data" / "expert_2500")
+DATA_FOLDER = "/workspace/6s890-finalproject/data/expert"
 CHECKPOINT_FOLDER = str(BASE_DIR / "results" / NAME / "checkpoints")
 LOGS_FOLDER = str(BASE_DIR / "results" / NAME / "logs")
 EVAL_GAMES_FOLDER = str(BASE_DIR / "results" / NAME / "eval_games")
@@ -26,30 +23,32 @@ EVAL_GAMES_FOLDER = str(BASE_DIR / "results" / NAME / "eval_games")
 ######### Dataloading #########
 ###############################
 
-BATCH_SIZE = 64
-NUM_WORKERS = 0  # Set to 0 to avoid multiprocessing pickle issues with HDF5
+# For small-scale testing, we'll use simplified data loading
+BATCH_SIZE = 512  # Smaller for testing
+NUM_WORKERS = 8  # Set to 0 to avoid multiprocessing pickle issues with HDF5
 PREFETCH_FACTOR = 2
-PIN_MEMORY = False  # Set to False for CPU training
+PIN_MEMORY = True  # Set to False for CPU training
 
 # Dataset configuration
-H5_FILE = "expert_2500_10k.h5"  # 10K expert games for small-scale test
-N_MOVES = 1
+H5_FILE = "LE22ct.h5"  # 10K games for small-scale test
+N_MOVES = 1  # Predict only next move (encoder-only model)
 
 ###############################
 ############ Model ############
 ###############################
 
-# Same model architecture as baseline for fair comparison
+# Vocabulary sizes (from chess-transformers)
 VOCAB_SIZES = {
-    "moves": 1968,
-    "turn": 2,
+    "moves": 1971,  # All possible UCI moves
+    "turn": 2,  # White or black
     "white_kingside_castling_rights": 2,
     "white_queenside_castling_rights": 2,
     "black_kingside_castling_rights": 2,
     "black_queenside_castling_rights": 2,
-    "board_position": 13,
+    "board_position": 14,  # Empty + 6 piece types × 2 colors
 }
 
+# Model architecture (CT-E-20 style, encoder-only)
 D_MODEL = 512
 N_HEADS = 8
 D_QUERIES = 64
@@ -62,19 +61,24 @@ DROPOUT = 0.1
 ########### Training ##########
 ###############################
 
+# Training configuration
 BATCHES_PER_STEP = 4
 PRINT_FREQUENCY = 10
-N_STEPS = 1000
-WARMUP_STEPS = 100
+N_STEPS = 10000  # Small-scale: 1K steps
+WARMUP_STEPS = 700
+MAX_LR = 0.1
 LR_SCHEDULE = "vaswani"
 LR_DECAY = None
 
+# Optimizer
 BETAS = (0.9, 0.98)
 EPSILON = 1e-9
 LABEL_SMOOTHING = 0.1
 
-USE_AMP = True
+# Mixed precision training
+USE_AMP =  True
 
+# Compilation
 DISABLE_COMPILATION = False
 COMPILATION_MODE = "default"
 DYNAMIC_COMPILATION = True
@@ -83,16 +87,19 @@ DYNAMIC_COMPILATION = True
 ######### Evaluation ##########
 ###############################
 
-EVAL_FREQUENCY = 100
+# Evaluation frequency
+EVAL_FREQUENCY = 100  # Evaluate every 100 steps
+
+# Checkpoint saving
 SAVE_FREQUENCY = 100
 CHECKPOINT_AVG_SUFFIX = ".pt"
-TRAINING_CHECKPOINT = None
+TRAINING_CHECKPOINT = None  # Set to checkpoint path to resume
 
 ###############################
 ####### Game-Theoretic ########
 ###############################
 
-# No game-theoretic regularization (testing expert data only)
+# No game-theoretic regularization for baseline
 USE_GT_REGULARIZATION = False
 GT_WEIGHT = 0.0
 STOCKFISH_DEPTH = None
