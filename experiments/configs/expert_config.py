@@ -1,8 +1,5 @@
 """
-Baseline Configuration - Mixed Skill Dataset
-
-This configuration uses a mixed-skill dataset (ELO 1500-2500+) to establish
-baseline performance for behavioral cloning.
+Configuration used for Expert dataset (all_chunks_combined file) (2000 ELO +)
 """
 
 import torch
