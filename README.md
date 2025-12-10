@@ -48,8 +48,14 @@ git clone https://github.com/sgrvinod/chess-transformers.git
 ```
 
 ### 3. Data Preparation
-See `DATA-PREP.md` for instructions on downloading and processing Lichess PGN archives.
+See `full_pipeline_setup.md` for the full reproducible pipeline, including:
+- Environment setup from a fresh container
+- Installing dependencies (PyTorch, chess-transformers, pgn-extract)
+- Downloading and processing Lichess PGN archives
+- Chunked processing for large-scale data
+- Combining H5 files and generating statistics
 
+  
 ### 4. Run Training
 ```bash
 cd experiments
@@ -94,6 +100,12 @@ We use the `chess-transformers` encoder-only architecture (CT-E-20) with ~20M pa
 - **Validation accuracy**: Top-1 and top-3 on held-out positions with legal move masking
 - **Stockfish alignment**: Agreement with engine moves at Elo 1500, 2000, 2500
 
+## Documentation
+
+- **README.md** — Project overview and quick start
+- **full_pipeline_setup.md** — Full reproducible pipeline: environment setup, PGN processing, and dataset creation from scratch
+- **experiments/README.md** — Experiment configurations and training details
+  
 ## Requirements
 
 - Python 3.8+
